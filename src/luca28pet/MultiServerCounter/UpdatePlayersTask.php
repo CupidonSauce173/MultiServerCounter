@@ -2,23 +2,24 @@
 
 namespace luca28pet\MultiServerCounter;
 
-use libpmquery\PMQuery;
-use libpmquery\PmQueryException;
+use luca28pet\MultiServerCounter\PMQuery\PMQuery;
+use luca28pet\MultiServerCounter\PMQuery\PMQueryException;
 use pocketmine\scheduler\AsyncTask;
-use pocketmine\Server;
+use JsonException;
 use function explode;
 use function json_decode;
-use function json_encode;
 
 class UpdatePlayersTask extends AsyncTask{
 
-    /** @var string */
-    private $serversData;
+    private string $serversData;
 
-    public function __construct(array $serversConfig){
-        $this->serversData = json_encode($serversConfig, JSON_THROW_ON_ERROR);
+    public function __construct(string $serversData){
+        $this->serversData = $serversData;
     }
 
+    /**
+     * @throws JsonException
+     */
     public function onRun() : void{
         $res = ['count' => 0, 'maxPlayers' => 0, 'errors' => []];
         $serversConfig = json_decode($this->serversData, true, 512, JSON_THROW_ON_ERROR);
@@ -28,7 +29,7 @@ class UpdatePlayersTask extends AsyncTask{
             $port = (int) $serverData[1];
             try{
                 $qData = PMQuery::query($ip, $port);
-            }catch(PmQueryException $e){
+            }catch(PMQueryException $e){
                 $res['errors'][] = 'Failed to query '.$serverConfigString.': '.$e->getMessage();
                 continue;
             }
@@ -38,17 +39,13 @@ class UpdatePlayersTask extends AsyncTask{
         $this->setResult($res);
     }
 
-    public function onCompletion(Server $server) : void{
+    public function onCompletion() : void{
         $res = $this->getResult();
         foreach($res['errors'] as $e){
-            $server->getLogger()->warning($e);
+            Main::getInstance()->getLogger()->warning($e);
         }
-        $plugin = $server->getPluginManager()->getPlugin('MultiServerCounter');
-        if($plugin !== null && $plugin->isEnabled()){
-            /** @var $plugin Main */
-            $plugin->setCachedPlayers($res['count']);
-            $plugin->setCachedMaxPlayers($res['maxPlayers']);
-        }
+        Main::getInstance()->setCachedPlayers($res['count']);
+        Main::getInstance()->setCachedMaxPlayers($res['maxPlayers']);
     }
 
 }

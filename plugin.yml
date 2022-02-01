@@ -1,6 +1,6 @@
 name: MultiServerCounter
 main: luca28pet\MultiServerCounter\Main
-api: 3.0.0
+api: 4.0.0
 version: 0.0.1
-author: luca28pet
+author: luca28pet & maintened by CupidonSauce173
 description: Count players of multiple servers
